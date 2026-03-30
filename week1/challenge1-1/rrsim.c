@@ -36,7 +36,13 @@ int main(void)
 
     init_proc_table();
 
-    // TODO
+    queue_enqueue(q, table + 0);
+    queue_enqueue(q, table + 1);
 
+    for (int i = 0; i < 15; i++){
+        struct process *p = queue_dequeue(q);
+        printf("PID %d: Running\n", p->pid);
+        queue_enqueue(q, p);
+    }
     queue_free(q);
 }
