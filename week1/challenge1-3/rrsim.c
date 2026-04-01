@@ -36,7 +36,21 @@ void init_proc_table(void)
  */
 void parse_command_line(int argc, char **argv)
 {
-    // TODO
+    for (int i = 1; i < argc; i++) {
+        char *arg = argv[i];
+        table[i-1].pid = i-1;
+        table[i-1].time_awake_remaining = atoi(arg);
+    }
+}
+
+int jobs_done()
+{
+    for (int i = 0; i < MAX_PROCS; i++) {
+        if (table[i].time_awake_remaining > 0) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 /**
@@ -46,11 +60,30 @@ int main(int argc, char **argv)
 {
     struct queue *q = queue_new();
 
+    int clock = 0;
+
     init_proc_table();
 
     parse_command_line(argc, argv);
 
-    // TODO
+    for (int i = 1; i < argc; i++) {
+        queue_enqueue(q, table + (i-1));
+    }
 
+    while(1){
+        if (jobs_done()) {
+            break;
+        }
+        printf("=== Clock %d ms ===\n", clock);
+        struct process *p = queue_dequeue(q);
+        printf("PID %d: Running\n", p->pid);
+        int time_ran = MIN(QUANTUM, p->time_awake_remaining);
+        clock += time_ran;
+        p->time_awake_remaining -= time_ran;
+        if (p->time_awake_remaining > 0) {
+            queue_enqueue(q, p);
+        }
+        printf("PID %d: Ran for %d ms\n", p->pid, time_ran);
+    }
     queue_free(q);
 }
