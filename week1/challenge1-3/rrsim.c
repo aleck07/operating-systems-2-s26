@@ -43,6 +43,9 @@ void parse_command_line(int argc, char **argv)
     }
 }
 
+/**
+ * Check if all jobs are done.
+ */
 int jobs_done()
 {
     for (int i = 0; i < MAX_PROCS; i++) {
