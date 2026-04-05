@@ -99,7 +99,11 @@ int jobs_done()
 }
 
 /**
- * Main.
+ * @brief Main function.
+ * 
+ * @param argc Argument count
+ * @param argv Argument vector
+ * @return int Exit status
  */
 int main(int argc, char **argv)
 {
