@@ -98,6 +98,11 @@ int jobs_done()
     return 1;
 }
 
+/**
+ * @brief Check sleeping processes and wake them up if their sleep time has elapsed.
+ * 
+ * @param q Ready queue
+ */
 void check_sleeping(struct queue *q)
 {
     for (int i = 0; i < num_procs; i++)
@@ -121,6 +126,12 @@ void check_sleeping(struct queue *q)
     }
 }
 
+/**
+ * @brief Handle process exit or sleep after a process finishes its time slice.
+ * 
+ * @param p Process to handle
+ * @param q Ready queue
+ */
 void exit_or_sleep(struct process *p, struct queue *q)
 {
     p->pc++;
@@ -139,6 +150,9 @@ void exit_or_sleep(struct process *p, struct queue *q)
 
 /**
  * @brief Advance the clock to the next sleeping process wakeup if the queue is empty.
+ * 
+ * @param q Ready queue
+ * @param clock Pointer to the current clock
  */
 void advance_clock_if_idle(struct queue *q, int *clock)
 {
@@ -163,6 +177,9 @@ void advance_clock_if_idle(struct queue *q, int *clock)
 
 /**
  * @brief Dequeue the next process and run it for one time slice.
+ * 
+ * @param q Ready queue
+ * @param clock Pointer to the current clock
  */
 void run_next_process(struct queue *q, int *clock)
 {
@@ -186,7 +203,11 @@ void run_next_process(struct queue *q, int *clock)
 }
 
 /**
- * @brief Set up the process table, parse arguments, and enqueue all processes.
+ * @brief Set up the process table, parse arguments, and enqueue all jobs/processes.
+ * 
+ * @param argc Argument count
+ * @param argv Argument vector  
+ * @return struct queue* Ready queue with all jobs enqueued
  */
 struct queue *setup(int argc, char **argv)
 {
