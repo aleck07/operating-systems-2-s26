@@ -17,13 +17,9 @@ void lock(void)
     int expected = 0;
     int new_val = 1;
 
-    while (1)
+    while(!atomic_compare_exchange_strong(&locked, &expected, new_val))
     {
         expected = 0;
-        if (atomic_compare_exchange_weak(&locked, &expected, new_val))
-        {
-            return;
-        }
     }
 }
 
