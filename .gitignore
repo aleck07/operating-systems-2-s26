@@ -4,3 +4,4 @@ week1/challenge1-3/rrsim
 project-1/rrsim
 week2/tas_spinlock
 week2/cas_spinlock
+week2/lock_free_stack
