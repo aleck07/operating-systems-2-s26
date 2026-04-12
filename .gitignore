@@ -5,3 +5,5 @@ project-1/rrsim
 week2/tas_spinlock
 week2/cas_spinlock
 week2/lock_free_stack
+project-2.1/ticketlock
+project-2.2/rwspinlock
