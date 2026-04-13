@@ -170,7 +170,7 @@ int main(void)
 
         bike->wheel_count = 2;
         sprintf(bike->name, "Bike %d", i + 1);
-        *num = i * 100;
+        *num = i + 1;
     }
 
     for (int i = 0; i < num_entries; i++)
