@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 
 // Please do not change the order or type of the fields in struct block
 
-struct block {
-    int size;        // bytes
-    int in_use;      // bool
+struct block
+{
+    int size;   // bytes
+    int in_use; // bool
     struct block *next;
 };
 
@@ -17,17 +19,17 @@ static struct block *head = NULL;
 // How much to allocate with `mmap()`
 #define MEM_SIZE 1024
 
-#define ALIGNMENT 16   // Must be power of 2
+#define ALIGNMENT 16 // Must be power of 2
 #define GET_PAD(x) ((ALIGNMENT - 1) - ((x - 1) & (ALIGNMENT - 1)))
 
 // Get padded size for an integer
 #define PADDED_SIZE(x) ((x) + GET_PAD(x))
 
 // Get padded size of a type
-#define PADDED_SIZEOF(x) (sizeof(x) + GET_PAD(sizeof (x)))
+#define PADDED_SIZEOF(x) (sizeof(x) + GET_PAD(sizeof(x)))
 
 // Compute an offset pointer from a source pointer in bytes
-#define PTR_OFFSET(p, offset) ((void*)((char *)(p) + (offset)))
+#define PTR_OFFSET(p, offset) ((void *)((char *)(p) + (offset)))
 
 /**
  * Allocate `size` bytes.
@@ -37,8 +39,28 @@ static struct block *head = NULL;
  */
 void *myalloc(int size)
 {
-    // TODO
-    (void)size;  // silence unused variable warnings
+    if (head == NULL)
+    {
+        void *heap = mmap(NULL, 1024, PROT_READ | PROT_WRITE,
+                          MAP_ANON | MAP_PRIVATE, -1, 0);
+        head = heap;
+        head->size = MEM_SIZE - PADDED_SIZEOF(struct block);
+        head->in_use = 0;
+        head->next = NULL;
+    }
+    int padded = PADDED_SIZE(size);
+
+    struct block *cur = head;
+    while (cur)
+    {
+        if (cur->in_use == 0 && cur->size >= padded)
+        {
+            cur->in_use = 1;
+            return PTR_OFFSET(cur, PADDED_SIZEOF(struct block));
+        }
+        cur = cur->next;
+    }
+
     return NULL;
 }
 
@@ -51,7 +73,7 @@ void *myalloc(int size)
 void myfree(void *p)
 {
     // TODO
-    (void)p;  // silence unused variable warnings
+    (void)p; // silence unused variable warnings
 }
 
 // ---------------------------------------------------------
@@ -65,14 +87,17 @@ void print_data(void)
 {
     struct block *b = head;
 
-    if (b == NULL) {
+    if (b == NULL)
+    {
         printf("[empty]\n");
         return;
     }
 
-    while (b != NULL) {
-        printf("[%d,%s]", b->size, b->in_use? "used": "free");
-        if (b->next != NULL) {
+    while (b != NULL)
+    {
+        printf("[%d,%s]", b->size, b->in_use ? "used" : "free");
+        if (b->next != NULL)
+        {
             printf(" -> ");
         }
         fflush(stdout);
@@ -92,7 +117,8 @@ int parse_num_arg(char *progname, char *s)
 
     int value = strtol(s, &end, 10);
 
-    if (*end != '\0') {
+    if (*end != '\0')
+    {
         fprintf(stderr, "%s: failed to parse numeric argument \"%s\"\n", progname, s);
         exit(1);
     }
@@ -129,7 +155,8 @@ int parse_num_arg(char *progname, char *s)
  */
 int main(int argc, char *argv[])
 {
-    if (argc == 1) {
+    if (argc == 1)
+    {
         fprintf(stderr, "usage: %s [p|a size|f index] ...\n", argv[0]);
         return 1;
     }
@@ -140,40 +167,46 @@ int main(int argc, char *argv[])
     void *ptr[128];
     int ptr_count = 0;
 
-    while (i < argc) {
+    while (i < argc)
+    {
         if (strcmp(argv[i], "p") == 0)
             print_data();
 
-        else if (strcmp(argv[i], "a") == 0) {
+        else if (strcmp(argv[i], "a") == 0)
+        {
             i++;
 
             int size = parse_num_arg(argv[0], argv[i]);
-            
-            void *p = myalloc(size); 
+
+            void *p = myalloc(size);
 
             if (p == NULL)
-                printf("failed to allocate %d byte%s\n", size, size == 1? "": "s");
+                printf("failed to allocate %d byte%s\n", size, size == 1 ? "" : "s");
             else
                 ptr[ptr_count++] = p;
-
-        } else if (strcmp(argv[i], "f") == 0) {
+        }
+        else if (strcmp(argv[i], "f") == 0)
+        {
             i++;
 
-            if (argv[i] == NULL) {
+            if (argv[i] == NULL)
+            {
                 fprintf(stderr, "%s: missing num argument for 'f' command\n", argv[0]);
                 return 1;
             }
 
             int index = parse_num_arg(argv[0], argv[i]);
 
-            if (index < 1 || index > ptr_count) {
+            if (index < 1 || index > ptr_count)
+            {
                 fprintf(stderr, "%s: 'f' command: argument %d out of range\n", argv[0], index);
                 return 1;
             }
 
             myfree(ptr[index - 1]);
-
-        } else {
+        }
+        else
+        {
             fprintf(stderr, "%s: unknown command: %s\n", argv[0], argv[i]);
             return 1;
         }
