@@ -53,7 +53,25 @@ void *myalloc(int size)
     struct block *cur = head;
     while (cur)
     {
-        if (cur->in_use == 0 && cur->size >= padded)
+        if (cur->in_use == 0 && cur->size == padded)
+        {
+            cur->in_use = 1;
+            return PTR_OFFSET(cur, PADDED_SIZEOF(struct block));
+        }
+        if (cur->in_use == 0 && cur->size > padded + (int)PADDED_SIZEOF(struct block))
+        {
+            struct block *new_block = PTR_OFFSET(cur, PADDED_SIZEOF(struct block) + padded);
+            new_block->size = cur->size - padded - PADDED_SIZEOF(struct block);
+            new_block->in_use = 0;
+            new_block->next = cur->next;
+
+            cur->size = padded;
+            cur->in_use = 1;
+            cur->next = new_block;
+
+            return PTR_OFFSET(cur, PADDED_SIZEOF(struct block));
+        }
+        if (cur->in_use == 0 && cur->size > padded)
         {
             cur->in_use = 1;
             return PTR_OFFSET(cur, PADDED_SIZEOF(struct block));
@@ -72,8 +90,9 @@ void *myalloc(int size)
  */
 void myfree(void *p)
 {
-    // TODO
     (void)p; // silence unused variable warnings
+    struct block *cur = PTR_OFFSET(p, -PADDED_SIZEOF(struct block));
+    cur->in_use = 0;
 }
 
 // ---------------------------------------------------------
