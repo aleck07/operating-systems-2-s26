@@ -31,6 +31,17 @@ static struct block *head = NULL;
 // Compute an offset pointer from a source pointer in bytes
 #define PTR_OFFSET(p, offset) ((void *)((char *)(p) + (offset)))
 
+void *init_heap(void)
+{
+    void *heap = mmap(NULL, MEM_SIZE, PROT_READ | PROT_WRITE,
+                      MAP_ANON | MAP_PRIVATE, -1, 0);
+    head = heap;
+    head->size = MEM_SIZE - PADDED_SIZEOF(struct block);
+    head->in_use = 0;
+    head->next = NULL;
+    return heap;
+}
+
 /**
  * Allocate `size` bytes.
  *
@@ -41,12 +52,7 @@ void *myalloc(int size)
 {
     if (head == NULL)
     {
-        void *heap = mmap(NULL, 1024, PROT_READ | PROT_WRITE,
-                          MAP_ANON | MAP_PRIVATE, -1, 0);
-        head = heap;
-        head->size = MEM_SIZE - PADDED_SIZEOF(struct block);
-        head->in_use = 0;
-        head->next = NULL;
+        init_heap();
     }
     int padded = PADDED_SIZE(size);
 
