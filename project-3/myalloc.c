@@ -87,6 +87,25 @@ void *myalloc(int size)
 
     return NULL;
 }
+/*
+* Coalesce adjacent free blocks
+*/
+void coalesce()
+{
+    struct block *cur = head;
+    while (cur && cur->next)
+    {
+        if (cur->in_use == 0 && cur->next->in_use == 0)
+        {
+            cur->size += PADDED_SIZEOF(struct block) + cur->next->size;
+            cur->next = cur->next->next;
+        }
+        else
+        {
+            cur = cur->next;
+        }
+    }
+}
 
 /**
  * Free a previously-allocated region.
@@ -99,6 +118,9 @@ void myfree(void *p)
     (void)p; // silence unused variable warnings
     struct block *cur = PTR_OFFSET(p, -PADDED_SIZEOF(struct block));
     cur->in_use = 0;
+
+    // coalesce
+    coalesce();
 }
 
 // ---------------------------------------------------------
