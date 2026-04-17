@@ -88,8 +88,8 @@ void *myalloc(int size)
     return NULL;
 }
 /*
-* Coalesce adjacent free blocks
-*/
+ * Coalesce adjacent free blocks
+ */
 void coalesce()
 {
     struct block *cur = head;
