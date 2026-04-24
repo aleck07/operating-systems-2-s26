@@ -41,6 +41,21 @@ unsigned char get_page_table(int proc_num)
     return mem[ptp_addr];
 }
 
+/*
+* Allocate a page and returns the page number
+* Returns -1 if no pages are free
+*/
+int allocate_page(void)
+{
+    for (int i = 0; i < PAGE_COUNT; i++) {
+        if (mem[i] == 0) {
+            mem[i] = 1;
+            return i;
+        }
+    }
+    return -1;
+}
+
 //
 // Allocate pages for a new process
 //
@@ -48,10 +63,22 @@ unsigned char get_page_table(int proc_num)
 //
 void new_process(int proc_num, int page_count)
 {
-    (void)proc_num;   // remove after implementation
-    (void)page_count; // remove after implementation
+    int page_table_page = allocate_page();
+    if (page_table_page == -1) {
+        printf("OOM: proc %d: page table\n", proc_num);
+        return;
+    }
 
-    // TODO
+    mem[PTP_OFFSET + proc_num] = (unsigned char)page_table_page;
+
+    for (int vp = 0; vp < page_count; vp++) {
+        int pp = allocate_page();
+        if (pp == -1) {
+            printf("OOM: proc %d: data page\n", proc_num);
+            return;
+        }
+        mem[get_address(page_table_page, vp)] = (unsigned char)pp;
+    }
 }
 
 //
@@ -120,6 +147,10 @@ int main(int argc, char *argv[])
             print_page_table(proc_num);
         }
 
-        // TODO: more command line arguments
+        else if (strcmp(argv[i], "np") == 0) {
+            int proc_num = atoi(argv[++i]);
+            int page_count = atoi(argv[++i]);
+            new_process(proc_num, page_count);
+        }
     }
 }
