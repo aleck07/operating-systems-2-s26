@@ -61,7 +61,10 @@ int vaddr_to_paddr(int vaddr)
 {
     int addr = get_addr_page(vaddr);
     set_page_table_entry(addr, pmem[addr]);
-    return (pmem[addr] << 12) | get_addr_offset(vaddr);
+    if (pmem[addr] == 0)
+        return 0;
+    else
+        return (pmem[addr] << 12) | get_addr_offset(vaddr);
 }
 
 /*
