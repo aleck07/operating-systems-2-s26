@@ -1,12 +1,16 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
 
-main:
-	$(CC) $(CFLAGS) -c main.c
-	$(CC) $(CFLAGS) -c adder.c
-	$(CC) $(CFLAGS) -o main main.o adder.o
+main: main.o adder.o
+	$(CC) -o $@ $^
 
-.PHONY: clean
+main.o: main.c
+	$(CC) $(CFLAGS) -c $<
+
+adder.o: adder.c
+	$(CC) $(CFLAGS) -c $<
+
+.PHONY: clean pristine
 
 clean:
 	rm -f *.o
