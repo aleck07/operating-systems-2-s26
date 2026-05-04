@@ -1,9 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
 
-SRCS = $(wildcard *.c)
-BINS = $(SRCS:.c=)
-
 main:
 	$(CC) $(CFLAGS) -c main.c
 	$(CC) $(CFLAGS) -c adder.c
