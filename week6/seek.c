@@ -34,7 +34,7 @@ int main(void)
 {
     // Allowed functions: open, lseek, write, close
 
-    int fd = open("seeker.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    int fd = open("seeker.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
     for (int i = 0; i < 60; i++) {
         write(fd, "-", 1);
