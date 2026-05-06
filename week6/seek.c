@@ -34,35 +34,23 @@ int main(void)
 {
     // Allowed functions: open, lseek, write, close
 
-    // TODO: Open the file `seeker.txt` for writing
     int fd = open("seeker.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
-    // TODO: Write 60 `-` characters to the file
     for (int i = 0; i < 60; i++) {
         write(fd, "-", 1);
     }
 
-    // TODO: Seek to position 0
     lseek(fd, 0, SEEK_SET);
-    // TODO: Write "interrupting"
     write(fd, "interrupting", 12);
-    // TODO: cat("seeker.txt");
     cat("seeker.txt");
 
-    // TODO: Seek to position 40
     lseek(fd, 40, SEEK_SET);
-    // TODO: Write "cow"
     write(fd, "cow", 3);
-    // TODO: cat("seeker.txt");
     cat ("seeker.txt");
 
-    // TODO: Seek to position 20
     lseek(fd, 20, SEEK_SET);
-    // TODO: Write "MOOOOOOO!"
     write(fd, "MOOOOOOO!", 9);
-    // TODO: cat("seeker.txt");
     cat("seeker.txt");
 
-    // TODO: Close the file
     close(fd);
 }
