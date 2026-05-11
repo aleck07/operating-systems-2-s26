@@ -30,3 +30,5 @@ libvvsfs.a
 testfs
 *.img
 week6/foo.txt
+week7/zero_bit
+week7/bit_manipulation
