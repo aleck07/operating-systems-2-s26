@@ -32,7 +32,10 @@ void set_bit(int index, int value)
 {
     int byte_index = index / BITS_PER_BYTE;
     int bit_index = index % BITS_PER_BYTE;
-    bitmap[byte_index] = (bitmap[byte_index] & ~(1 << bit_index)) | (value << bit_index);
+    if (value)
+        bitmap[byte_index] |= (1 << bit_index);
+    else
+        bitmap[byte_index] &= ~(1 << bit_index);
 }
 
 int main(void)
