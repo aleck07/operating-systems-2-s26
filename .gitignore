@@ -32,3 +32,5 @@ testfs
 week6/foo.txt
 week7/zero_bit
 week7/bit_manipulation
+week7/parity
+week7/recover
