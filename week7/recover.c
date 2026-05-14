@@ -26,24 +26,20 @@ int repair(unsigned char *data) {
     int corrupted = 0;
     int bad = -1;
 
-    // Extract stored parity bit (bit 7), then clear it
     int sa = (a >> 7) & 1; a &= 0x7F;
     int sb = (b >> 7) & 1; b &= 0x7F;
     int sc = (c >> 7) & 1; c &= 0x7F;
 
-    // If stored parity doesn't match recomputed parity, byte is corrupted
     if (sa != parity(a)) { corrupted++; bad = 0; }
     if (sb != parity(b)) { corrupted++; bad = 1; }
     if (sc != parity(c)) { corrupted++; bad = 2; }
 
     if (corrupted > 1) return 0;
 
-    // Replace the one bad byte with XOR of the two good bytes
     if (bad == 0) a = b ^ c;
     else if (bad == 1) b = a ^ c;
     else if (bad == 2) c = a ^ b;
 
-    // Recompute and set parity bit at bit 7 for each byte, then store back
     data[0] = a | (parity(a) << 7);
     data[1] = b | (parity(b) << 7);
     data[2] = c | (parity(c) << 7);
