@@ -24,7 +24,10 @@ struct animal {
  */
 void store_animal(int index, unsigned char *buf, struct animal *a)
 {
-    // TODO
+    int offset = index * ANIMAL_SIZE;
+    memcpy(buf + offset, a->name, ANIMAL_NAME_SIZE);
+    write_u16(buf + offset + ANIMAL_NAME_SIZE, a->leg_count);
+    write_u32(buf + offset + ANIMAL_NAME_SIZE + ANIMAL_LEG_COUNT_SIZE, a->population);
 }
 
 /*
@@ -32,7 +35,10 @@ void store_animal(int index, unsigned char *buf, struct animal *a)
  */
 void load_animal(int index, unsigned char *buf, struct animal *a)
 {
-    // TODO
+    int offset = index * ANIMAL_SIZE;
+    memcpy(a->name, buf + offset, ANIMAL_NAME_SIZE);
+    a->leg_count = read_u16(buf + offset + ANIMAL_NAME_SIZE);
+    a->population = read_u32(buf + offset + ANIMAL_NAME_SIZE + ANIMAL_LEG_COUNT_SIZE);
 }
 
 int main(void)
