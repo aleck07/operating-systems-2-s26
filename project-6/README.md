@@ -16,6 +16,12 @@ disk image file. Read and write operations go through a block abstraction layer.
 * `image.h`: Header for image functions
 * `block.c`: Read and write 4096-byte blocks within the image
 * `block.h`: Header for block functions and the `BLOCK_SIZE` constant
+* `free.c`: Bitmap helpers for tracking free inodes and blocks
+* `free.h`: Header for `set_free()` and `find_free()`
+* `inode.c`: Inode allocation via the inode map
+* `inode.h`: Header for `ialloc()`
+* `mkfs.c`: Initialize the filesystem by zeroing metadata blocks and marking blocks 0–6 allocated
+* `mkfs.h`: Header for `mkfs()`
 * `testfs.c`: Test suite using `ctest.h`
 
 ## Data
@@ -40,6 +46,10 @@ Block buffers are `unsigned char[BLOCK_SIZE]` arrays passed into `bread` and
 * `image_close()`: Close the disk image file
 * `bread()`: Seek to a block's offset and read it into a buffer
 * `bwrite()`: Seek to a block's offset and write a buffer to it
+* `set_free()`: Set or clear a single bit in a bitmap block
+* `find_free()`: Scan a bitmap block for the first clear bit; returns its index or -1
+* `ialloc()`: Find a free inode in the inode map, mark it allocated, and return its number
+* `mkfs()`: Format the filesystem — zero metadata blocks and mark blocks 0–6 as allocated in the block map
 
 ## Notes
 
