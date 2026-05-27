@@ -6,6 +6,7 @@
 #include "free.h"
 #include "inode.h"
 #include "mkfs.h"
+#include "pack.h"
 
 #define TEST_IMAGE "test_image.img"
 
@@ -129,13 +130,137 @@ void test_find_free(void)
 void test_ialloc(void)
 {
     image_open(TEST_IMAGE, 1);
+    mkfs();
 
-    int first = ialloc();
-    CTEST_ASSERT(first == 0, "first ialloc returns inode 0");
+    struct inode *first = ialloc();
+    CTEST_ASSERT(first != NULL, "first ialloc returns non-NULL");
+    CTEST_ASSERT(first->inode_num == 0, "first ialloc returns inode 0");
+    CTEST_ASSERT(first->size == 0, "first ialloc inode size is 0");
 
-    int second = ialloc();
-    CTEST_ASSERT(second == 1, "second ialloc returns inode 1");
+    struct inode *second = ialloc();
+    CTEST_ASSERT(second != NULL, "second ialloc returns non-NULL");
+    CTEST_ASSERT(second->inode_num == 1, "second ialloc returns inode 1");
 
+    incore_free_all();
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_incore_find_free(void)
+{
+    incore_free_all();
+
+    struct inode *in = incore_find_free();
+    CTEST_ASSERT(in != NULL, "incore_find_free returns non-NULL on empty incore");
+
+    in->ref_count = 1;
+    in->inode_num = 42;
+
+    struct inode *in2 = incore_find_free();
+    CTEST_ASSERT(in2 != NULL, "incore_find_free returns different slot after first is used");
+    CTEST_ASSERT(in2 != in, "incore_find_free returns a different pointer");
+
+    incore_free_all();
+}
+
+void test_incore_find(void)
+{
+    incore_free_all();
+
+    struct inode *slot = incore_find_free();
+    slot->ref_count = 1;
+    slot->inode_num = 7;
+
+    struct inode *found = incore_find(7);
+    CTEST_ASSERT(found != NULL, "incore_find returns non-NULL for existing inode_num");
+    CTEST_ASSERT(found == slot, "incore_find returns correct pointer");
+    CTEST_ASSERT(found->inode_num == 7, "incore_find returns inode with correct inode_num");
+
+    struct inode *not_found = incore_find(99);
+    CTEST_ASSERT(not_found == NULL, "incore_find returns NULL for missing inode_num");
+
+    incore_free_all();
+}
+
+void test_incore_free_all(void)
+{
+    incore_free_all();
+
+    struct inode *a = incore_find_free();
+    a->ref_count = 5;
+    struct inode *b = incore_find_free();
+    b->ref_count = 3;
+
+    incore_free_all();
+
+    CTEST_ASSERT(incore_find(a->inode_num) == NULL, "incore_free_all clears all ref counts");
+
+    struct inode *fresh = incore_find_free();
+    CTEST_ASSERT(fresh != NULL, "incore_find_free works after incore_free_all");
+}
+
+void test_read_write_inode(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+
+    struct inode out;
+    out.inode_num   = 5;
+    out.size        = 1234;
+    out.owner_id    = 99;
+    out.permissions = 0x7;
+    out.flags       = 0x2;
+    out.link_count  = 3;
+    for (int i = 0; i < INODE_PTR_COUNT; i++)
+        out.block_ptr[i] = (unsigned short)(10 + i);
+
+    write_inode(&out);
+
+    struct inode in;
+    memset(&in, 0, sizeof(in));
+    in.inode_num = 5;
+    read_inode(&in, 5);
+
+    CTEST_ASSERT(in.size == 1234, "read_inode restores size");
+    CTEST_ASSERT(in.owner_id == 99, "read_inode restores owner_id");
+    CTEST_ASSERT(in.permissions == 0x7, "read_inode restores permissions");
+    CTEST_ASSERT(in.flags == 0x2, "read_inode restores flags");
+    CTEST_ASSERT(in.link_count == 3, "read_inode restores link_count");
+    CTEST_ASSERT(in.block_ptr[0] == 10, "read_inode restores block_ptr[0]");
+    CTEST_ASSERT(in.block_ptr[15] == 25, "read_inode restores block_ptr[15]");
+
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_iget_iput(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    struct inode *in = iget(0);
+    CTEST_ASSERT(in != NULL, "iget returns non-NULL for inode 0");
+    CTEST_ASSERT(in->ref_count == 1, "iget sets ref_count to 1 on first load");
+    CTEST_ASSERT(in->inode_num == 0, "iget sets correct inode_num");
+
+    struct inode *in2 = iget(0);
+    CTEST_ASSERT(in2 == in, "second iget(0) returns same pointer");
+    CTEST_ASSERT(in2->ref_count == 2, "second iget increments ref_count to 2");
+
+    iput(in2);
+    CTEST_ASSERT(in->ref_count == 1, "iput decrements ref_count to 1");
+
+    in->size = 777;
+    iput(in);
+    CTEST_ASSERT(in->ref_count == 0, "final iput sets ref_count to 0");
+
+    struct inode verify;
+    memset(&verify, 0, sizeof(verify));
+    read_inode(&verify, 0);
+    CTEST_ASSERT(verify.size == 777, "iput writes inode to disk when ref_count hits 0");
+
+    incore_free_all();
     image_close();
     unlink(TEST_IMAGE);
 }
@@ -188,6 +313,11 @@ int main(void)
     test_ialloc();
     test_alloc();
     test_mkfs();
+    test_incore_find_free();
+    test_incore_find();
+    test_incore_free_all();
+    test_read_write_inode();
+    test_iget_iput();
 
     CTEST_RESULTS();
 

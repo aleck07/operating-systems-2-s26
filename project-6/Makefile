@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror
 
-LIB_OBJS = image.o block.o free.o inode.o mkfs.o
+LIB_OBJS = image.o block.o free.o inode.o mkfs.o pack.o
 LIB = libvvsfs.a
 TARGET = testfs
 
@@ -24,8 +24,11 @@ block.o: block.c block.h free.h image.h
 free.o: free.c free.h block.h
 	$(CC) $(CFLAGS) -c free.c
 
-inode.o: inode.c inode.h block.h free.h
+inode.o: inode.c inode.h block.h free.h pack.h
 	$(CC) $(CFLAGS) -c inode.c
+
+pack.o: pack.c pack.h
+	$(CC) $(CFLAGS) -c pack.c
 
 mkfs.o: mkfs.c mkfs.h block.h
 	$(CC) $(CFLAGS) -c mkfs.c
