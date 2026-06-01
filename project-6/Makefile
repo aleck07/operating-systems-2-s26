@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror
 
-LIB_OBJS = image.o block.o free.o inode.o mkfs.o pack.o
+LIB_OBJS = image.o block.o free.o inode.o mkfs.o pack.o dir.o ls.o
 LIB = libvvsfs.a
 TARGET = testfs
 
@@ -30,10 +30,16 @@ inode.o: inode.c inode.h block.h free.h pack.h
 pack.o: pack.c pack.h
 	$(CC) $(CFLAGS) -c pack.c
 
-mkfs.o: mkfs.c mkfs.h block.h
+mkfs.o: mkfs.c mkfs.h block.h dir.h inode.h pack.h
 	$(CC) $(CFLAGS) -c mkfs.c
 
-testfs.o: testfs.c image.h block.h free.h inode.h mkfs.h ctest.h
+dir.o: dir.c dir.h inode.h block.h pack.h
+	$(CC) $(CFLAGS) -c dir.c
+
+ls.o: ls.c ls.h dir.h
+	$(CC) $(CFLAGS) -c ls.c
+
+testfs.o: testfs.c image.h block.h free.h inode.h mkfs.h dir.h ls.h ctest.h
 	$(CC) $(CFLAGS) -DCTEST_ENABLE -c testfs.c
 
 test: $(TARGET)

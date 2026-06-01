@@ -1,10 +1,12 @@
 #include <string.h>
 #include <unistd.h>
 #include "ctest.h"
+#include "dir.h"
+#include "free.h"
 #include "image.h"
 #include "block.h"
-#include "free.h"
 #include "inode.h"
+#include "ls.h"
 #include "mkfs.h"
 #include "pack.h"
 
@@ -134,12 +136,12 @@ void test_ialloc(void)
 
     struct inode *first = ialloc();
     CTEST_ASSERT(first != NULL, "first ialloc returns non-NULL");
-    CTEST_ASSERT(first->inode_num == 0, "first ialloc returns inode 0");
+    CTEST_ASSERT(first->inode_num == 1, "first ialloc returns inode 1");
     CTEST_ASSERT(first->size == 0, "first ialloc inode size is 0");
 
     struct inode *second = ialloc();
     CTEST_ASSERT(second != NULL, "second ialloc returns non-NULL");
-    CTEST_ASSERT(second->inode_num == 1, "second ialloc returns inode 1");
+    CTEST_ASSERT(second->inode_num == 2, "second ialloc returns inode 2");
 
     incore_free_all();
     image_close();
@@ -287,13 +289,72 @@ void test_mkfs(void)
     mkfs();
 
     bread(2, block);
-    CTEST_ASSERT(block[0] == 0x7f, "mkfs marks first 7 blocks as allocated in block map");
+    CTEST_ASSERT(block[0] == 0xff, "mkfs marks first 8 blocks as allocated in block map");
     CTEST_ASSERT(block[1] == 0x00, "mkfs leaves remaining block map entries free");
 
     bread(0, block);
     unsigned char zero_buf[BLOCK_SIZE];
     memset(zero_buf, 0, BLOCK_SIZE);
     CTEST_ASSERT(memcmp(block, zero_buf, BLOCK_SIZE) == 0, "mkfs writes zero superblock");
+
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_directory_open(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    struct directory *dir = directory_open(ROOT_INODE_NUM);
+    CTEST_ASSERT(dir != NULL, "directory_open returns non-NULL");
+    CTEST_ASSERT(dir->offset == 0, "directory_open sets offset to 0");
+
+    directory_close(dir);
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_directory_get(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    struct directory *dir = directory_open(ROOT_INODE_NUM);
+    struct directory_entry ent;
+
+    int r1 = directory_get(dir, &ent);
+    CTEST_ASSERT(r1 == 0, "directory_get returns 0 on first entry");
+    CTEST_ASSERT(ent.inode_num == 0, "first entry inode_num is 0");
+    CTEST_ASSERT(strcmp(ent.name, ".") == 0, "first entry name is '.'");
+
+    int r2 = directory_get(dir, &ent);
+    CTEST_ASSERT(r2 == 0, "directory_get returns 0 on second entry");
+    CTEST_ASSERT(ent.inode_num == 0, "second entry inode_num is 0");
+    CTEST_ASSERT(strcmp(ent.name, "..") == 0, "second entry name is '..'");
+
+    int r3 = directory_get(dir, &ent);
+    CTEST_ASSERT(r3 == -1, "directory_get returns -1 past end");
+
+    directory_close(dir);
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_directory_close(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    struct directory *dir = directory_open(ROOT_INODE_NUM);
+    CTEST_ASSERT(dir != NULL, "directory_open returns non-NULL");
+
+    directory_close(dir);
+
+    CTEST_ASSERT(incore_find(ROOT_INODE_NUM) == NULL, "directory_close frees the inode");
 
     image_close();
     unlink(TEST_IMAGE);
@@ -318,6 +379,9 @@ int main(void)
     test_incore_free_all();
     test_read_write_inode();
     test_iget_iput();
+    test_directory_open();
+    test_directory_get();
+    test_directory_close();
 
     CTEST_RESULTS();
 
