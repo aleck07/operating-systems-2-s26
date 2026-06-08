@@ -360,6 +360,125 @@ void test_directory_close(void)
     unlink(TEST_IMAGE);
 }
 
+void test_namei_root(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    struct inode *in = namei("/");
+    CTEST_ASSERT(in != NULL, "namei('/') returns non-NULL");
+    CTEST_ASSERT(in->inode_num == ROOT_INODE_NUM, "namei('/') returns root inode");
+    CTEST_ASSERT(in->ref_count >= 1, "namei('/') returns inode with ref_count >= 1");
+    iput(in);
+
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_namei_component(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    directory_make("/foo");
+
+    struct inode *in = namei("/foo");
+    CTEST_ASSERT(in != NULL, "namei('/foo') returns non-NULL after directory_make");
+    CTEST_ASSERT(in->flags == INODE_FLAG_DIRECTORY, "namei('/foo') inode is a directory");
+    CTEST_ASSERT(in->size == 2 * DIR_ENTRY_SIZE, "namei('/foo') inode has correct size");
+    iput(in);
+
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_namei_invalid(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    struct inode *in = namei("/nonexistent");
+    CTEST_ASSERT(in == NULL, "namei returns NULL for nonexistent path");
+
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_directory_make(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    int result = directory_make("/foo");
+    CTEST_ASSERT(result == 0, "directory_make returns 0 on success");
+
+    struct directory *dir = directory_open(ROOT_INODE_NUM);
+    struct directory_entry ent;
+
+    directory_get(dir, &ent);
+    directory_get(dir, &ent);
+
+    int r = directory_get(dir, &ent);
+    CTEST_ASSERT(r == 0, "root directory has a third entry after directory_make");
+    CTEST_ASSERT(strcmp(ent.name, "foo") == 0, "third entry name is 'foo'");
+
+    directory_close(dir);
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_directory_make_entries(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    directory_make("/foo");
+
+    struct inode *foo_inode = namei("/foo");
+    CTEST_ASSERT(foo_inode != NULL, "namei finds new directory");
+
+    int foo_inum = (int)foo_inode->inode_num;
+    iput(foo_inode);
+
+    struct directory *dir = directory_open(foo_inum);
+    struct directory_entry ent;
+
+    int r1 = directory_get(dir, &ent);
+    CTEST_ASSERT(r1 == 0, "foo has a first entry");
+    CTEST_ASSERT(strcmp(ent.name, ".") == 0, "foo first entry is '.'");
+    CTEST_ASSERT((int)ent.inode_num == foo_inum, "foo '.' points to itself");
+
+    int r2 = directory_get(dir, &ent);
+    CTEST_ASSERT(r2 == 0, "foo has a second entry");
+    CTEST_ASSERT(strcmp(ent.name, "..") == 0, "foo second entry is '..'");
+    CTEST_ASSERT(ent.inode_num == ROOT_INODE_NUM, "foo '..' points to root");
+
+    int r3 = directory_get(dir, &ent);
+    CTEST_ASSERT(r3 == -1, "foo has no more entries");
+
+    directory_close(dir);
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
+void test_directory_make_invalid(void)
+{
+    image_open(TEST_IMAGE, 1);
+    mkfs();
+    incore_free_all();
+
+    int result = directory_make("no_leading_slash");
+    CTEST_ASSERT(result == -1, "directory_make returns -1 for path without leading slash");
+
+    image_close();
+    unlink(TEST_IMAGE);
+}
+
 int main(void)
 {
     CTEST_VERBOSE(1);
@@ -382,6 +501,12 @@ int main(void)
     test_directory_open();
     test_directory_get();
     test_directory_close();
+    test_namei_root();
+    test_namei_component();
+    test_namei_invalid();
+    test_directory_make();
+    test_directory_make_entries();
+    test_directory_make_invalid();
 
     CTEST_RESULTS();
 
